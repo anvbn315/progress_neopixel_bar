@@ -1,0 +1,106 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>ESP8266 WebSocket</title>
+</head>
+<body>
+    <div>WebSocket Status 
+        <span id="status" style="font-weight: bold;"> disconnected </span>
+    </div>
+    <div>ESP8266 Button Status 
+        <input type="checkbox" id="btn" name="btn" />
+    </div>
+    <div>Control LED 
+        <input type="checkbox" id="led" name="led" disabled="true" />
+    </div>
+    <!-- Section to display calendar events -->
+    <div id="events-section">
+        <h2>Upcoming Events</h2>
+        <ul id="event-list"></ul> <!-- Events will be listed here -->
+    </div>
+
+    <script type="text/javascript">
+        var button = document.getElementById('btn');
+        var led = document.getElementById('led');
+        var ws = new WebSocket('ws://' + window.location.host + '/ws');
+        console.log('connecting...');
+
+        ws.onopen = function() {
+            document.getElementById('status').innerHTML = 'Connected';
+            led.disabled = false; // Enable LED control after WebSocket connection
+            console.log('connected...');
+        };
+
+        ws.onmessage = function(evt) {
+            console.log(evt.data);
+            if (evt.data == 'BTN_PRESSED') {
+                button.checked = true;
+            } else if (evt.data == 'BTN_RELEASE') {
+                button.checked = false;
+            } else if (evt.data == 'LED_OFF') {
+                led.checked = false;
+            } else if (evt.data == 'LED_ON') {
+                led.checked = true;
+            } else if(evt.data == "EVENT_UPDATE") {
+                fetchEventsAndRender();
+            }else if(evt.data.startsWith("EVENT_OCCUR")) {
+                console.log(evt.data)
+            } else if(evt.data.startsWith('EVENT_END')) {
+                console.log(evt.data)
+            }
+        };
+
+        ws.onclose = function() {
+            led.disabled = true;
+            document.getElementById('status').innerHTML = 'Disconnected';
+        };
+
+        led.onchange = function() {
+            var led_status = 'LED_OFF';
+            if (led.checked) {
+                led_status = 'LED_ON';
+            }
+            ws.send(led_status);
+        }
+
+        async function fetchEventsAndRender() {
+            try {
+                const res = await fetch("http://localhost:3000/events");
+                const data = await res.json();
+
+                displayEvents(data);
+            } catch (err) {
+                console.error("Error loading events:", err);
+            }
+        }
+
+        // Function to display the fetched calendar events
+        function displayEvents(events) {
+            const eventList = document.getElementById("event-list");
+
+            // Clear any previous events
+            eventList.innerHTML = '';
+
+            // If there are no events
+            if (events.length === 0) {
+                eventList.innerHTML = "<li>No upcoming events.</li>";
+                return;
+            }
+
+            // Loop through the events and display each one
+            events.forEach(event => {
+                const listItem = document.createElement("li");
+
+                // Format the event's date and time
+                const eventTime = new Date(event.start.dateTime || event.start.date).toLocaleString();
+                listItem.innerHTML = `
+                    <strong>${event.summary}</strong><br>
+                    <em>Start: ${eventTime}</em><br>
+                    <span>${event.description || "No description available"}</span>
+                `;
+                eventList.appendChild(listItem);
+            });
+        }
+    </script>
+</body>
+</html>

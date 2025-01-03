@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>ESP8266 WebSocket</title>
+	</head>
+	<body>
+		<h1>Login Google</h1>
+        <button id="login-btn">Login</button>
+
+        <script>
+            const $ = document.querySelector.bind(document)
+            const $$ = document.querySelectorAll.bind(document)
+
+            const loginBtn = $("#login-btn");
+            console.log(loginBtn)
+            if(loginBtn) {
+                loginBtn.addEventListener("click", () => {
+                    window.location.href = "http://localhost:3000/login";
+                })
+            }
+        </script>
+	</body>
+</html>
